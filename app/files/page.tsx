@@ -1,6 +1,7 @@
-// 'use client' directive for client-side React
-// 'use client' directive for client-side React
 'use client';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 import * as React from "react";
 import { useCallback, useMemo, useState } from "react";
