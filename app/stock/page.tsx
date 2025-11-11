@@ -61,7 +61,7 @@ const STOCK: StockItem[] = [
   { id:'st-vid003', src:'https://picsum.photos/id/1064/1600/1066', title:'Forest b-roll', tags:['video','forest'], mime:'video/mp4', has_people:false, dominant_color:'#2e5b3c', width:1600, height:1066, alt:'Video: forest' },
 ];
 
-export default function StockPage() {
+function StockPageInner() {
   const [rows] = useState<StockItem[]>(STOCK);
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<FiltersState>({
@@ -547,5 +547,13 @@ export default function StockPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function StockPage() {
+  return (
+    <React.Suspense fallback={<div className="p-6 md:p-10">Indlæser…</div>}>
+      <StockPageInner />
+    </React.Suspense>
   );
 }
