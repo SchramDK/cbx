@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Gallery, { DemoItem } from '../files/ui/Gallery';
 import Filters, { FiltersState } from '../files/ui/Filters';
 
@@ -38,6 +39,7 @@ type StockItem = {
 };
 
 const STOCK: StockItem[] = [
+  // Photos
   { id:'st-001', src:'https://picsum.photos/id/1003/1600/1066', title:'Forest river', tags:['nature','forest','river','water'], mime:'image/jpeg', has_people:false, dominant_color:'#3a5a44', width:1600, height:1066, alt:'Forest river' },
   { id:'st-002', src:'https://picsum.photos/id/1015/1600/1066', title:'Mountains lake', tags:['mountain','lake','nature'], mime:'image/jpeg', has_people:false, dominant_color:'#6b879a', width:1600, height:1066, alt:'Mountains' },
   { id:'st-003', src:'https://picsum.photos/id/1016/1600/1066', title:'Beach', tags:['beach','ocean','summer'], mime:'image/jpeg', has_people:true, dominant_color:'#8ac0d6', width:1600, height:1066, alt:'Beach' },
@@ -47,6 +49,16 @@ const STOCK: StockItem[] = [
   { id:'st-007', src:'https://picsum.photos/id/1012/1600/1066', title:'City bridge', tags:['city','bridge','architecture'], mime:'image/jpeg', has_people:false, dominant_color:'#4b5b6a', width:1600, height:1066, alt:'Bridge' },
   { id:'st-008', src:'https://picsum.photos/id/1013/1600/1066', title:'Street life', tags:['street','city','people'], mime:'image/jpeg', has_people:true, dominant_color:'#6f7a88', width:1600, height:1066, alt:'Street' },
   { id:'st-009', src:'https://picsum.photos/id/1014/1600/1066', title:'Harbor', tags:['harbor','sea','city'], mime:'image/jpeg', has_people:false, dominant_color:'#8aa0b5', width:1600, height:1066, alt:'Harbor' },
+
+  // Vectors (svg previews)
+  { id:'st-v001', src:'https://picsum.photos/id/1054/1600/1066', title:'Line shapes vector', tags:['vector','lines','abstract'], mime:'image/svg+xml', has_people:false, dominant_color:'#3a86ff', width:1600, height:1066, alt:'Vector lines' },
+  { id:'st-v002', src:'https://picsum.photos/id/1055/1600/1066', title:'Color blocks vector', tags:['vector','abstract','blocks'], mime:'image/svg+xml', has_people:false, dominant_color:'#ff006e', width:1600, height:1066, alt:'Vector blocks' },
+  { id:'st-v003', src:'https://picsum.photos/id/1050/1600/1066', title:'Pattern vector', tags:['vector','pattern'], mime:'image/svg+xml', has_people:false, dominant_color:'#a1b2c3', width:1600, height:1066, alt:'Vector pattern' },
+
+  // Videos (use poster previews)
+  { id:'st-vid001', src:'https://picsum.photos/id/1062/1600/1066', title:'Cinematic waves', tags:['video','ocean'], mime:'video/mp4', has_people:false, dominant_color:'#264653', width:1600, height:1066, alt:'Video: waves' },
+  { id:'st-vid002', src:'https://picsum.photos/id/1063/1600/1066', title:'City timelapse', tags:['video','city'], mime:'video/mp4', has_people:false, dominant_color:'#2a2a2a', width:1600, height:1066, alt:'Video: city' },
+  { id:'st-vid003', src:'https://picsum.photos/id/1064/1600/1066', title:'Forest b-roll', tags:['video','forest'], mime:'video/mp4', has_people:false, dominant_color:'#2e5b3c', width:1600, height:1066, alt:'Video: forest' },
 ];
 
 export default function StockPage() {
@@ -59,17 +71,58 @@ export default function StockPage() {
     colorTolerance: 30,
   });
 
+  type UniverseType = 'photos' | 'vectors' | 'videos' | null;
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const universe: UniverseType = (searchParams.get('type') as UniverseType) ?? null;
+  // Reset search & filters whenever the universe (tabs) changes
+  useEffect(() => {
+    setQuery('');
+    setFilters({
+      types: [],
+      people: 'any',
+      colorHex: null,
+      colorTolerance: 30,
+    });
+    setShowFilters(false);
+  }, [universe]);
+
   // --- Cart state (demo) ---
   type CartItem = DemoItem;
   const [cart, setCart] = useState<CartItem[]>([]);
   const inCart = (id: string) => cart.some(c => c.id === id);
   const addToCart = (item: CartItem) => {
-    setCart(prev => inCart(item.id) ? prev : [...prev, item]);
+    setCart(prev => (prev.some(c => c.id === item.id) ? prev : [...prev, item]));
+    setCartOpen(true);
   };
   const removeFromCart = (id: string) => setCart(prev => prev.filter(c => c.id !== id));
 
+  // Mobile drawer state
+  const [showFilters, setShowFilters] = useState(false);
+
+  const [cartOpen, setCartOpen] = useState(false);
+  const cartRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (cartRef.current && !cartRef.current.contains(e.target as Node)) {
+        setCartOpen(false);
+      }
+    };
+    document.addEventListener('click', onDocClick);
+    return () => document.removeEventListener('click', onDocClick);
+  }, []);
+
   const list = useMemo<DemoItem[]>(() => {
-    let r = [...rows];
+    // Universe pre-filter (photos | vectors | videos) from URL
+    let base = [...rows];
+    if (universe === 'photos') {
+      base = base.filter(it => it.mime.toLowerCase().startsWith('image/') && it.mime.toLowerCase() !== 'image/svg+xml');
+    } else if (universe === 'vectors') {
+      base = base.filter(it => it.mime.toLowerCase() === 'image/svg+xml');
+    } else if (universe === 'videos') {
+      base = base.filter(it => it.mime.toLowerCase().startsWith('video/'));
+    }
+    let r = base;
 
     const q = query.trim().toLowerCase();
     if (q) {
@@ -111,10 +164,11 @@ export default function StockPage() {
     }
 
     return r.map(it => ({ id: it.id, src: it.src, alt: it.alt ?? it.title, width: it.width, height: it.height }));
-  }, [rows, query, filters]);
+  }, [rows, query, filters, universe]);
 
   // 1) Add helper to detect active filters
   const hasActiveFilters =
+    universe !== null ||
     (filters.types && filters.types.length > 0) ||
     filters.people !== 'any' ||
     !!filters.colorHex;
@@ -155,45 +209,84 @@ export default function StockPage() {
   // 3) Dual mode: Discover front page or Search Results
   return (
     <div className="flex flex-col gap-6">
-      {/* Floating cart */}
-      <div className="fixed right-4 top-4 z-[60]">
-        <div className="relative">
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 rounded-full bg-black/75 text-white px-4 py-2 backdrop-blur shadow-lg hover:bg-black/80"
-            title="Kurv"
-          >
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M7 4h-2l-1 2h2l3.6 7.59-1.35 2.44A1.99 1.99 0 0 0 8 18a2 2 0 1 0 2 2h6a2 2 0 1 0 2-2H9.42c.03-.06.06-.12.09-.18l1.1-1.98h6.45a2 2 0 0 0 1.79-1.11l3.58-7.16A1 1 0 0 0 22 4h-2l-3.6 7.2H10.1L7 4z"/></svg>
-            <span className="text-sm">Kurv</span>
-            <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white/95 px-1.5 text-[11px] text-black">
-              {cart.length}
-            </span>
-          </button>
-          {/* Mini cart dropdown */}
-          {cart.length > 0 && (
-            <div className="absolute right-0 mt-2 w-64 rounded-lg border bg-white shadow-lg p-2">
-              <div className="max-h-64 overflow-auto divide-y">
-                {cart.map((c) => (
-                  <div key={c.id} className="flex items-center gap-2 py-2">
-                    <img src={c.src} alt={c.alt ?? ''} className="h-10 w-14 object-cover rounded" />
-                    <div className="min-w-0 flex-1 truncate text-sm">{c.alt ?? c.id}</div>
-                    <button
-                      className="rounded px-2 py-1 text-xs border hover:bg-zinc-50"
-                      onClick={() => removeFromCart(c.id)}
-                    >
-                      Fjern
-                    </button>
-                  </div>
-                ))}
+      {/* Universe Tabs – top of page */}
+      <div className="sticky top-0 z-[70] bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b">
+        <div className="mx-auto max-w-6xl px-4 py-2 flex items-center justify-between gap-2">
+          {/* Left: Tabs */}
+          <div className="flex flex-wrap items-center gap-2">
+            {([
+              { key: null as UniverseType, label: 'Alle' },
+              { key: 'photos' as UniverseType, label: 'Billeder' },
+              { key: 'vectors' as UniverseType, label: 'Vektorer' },
+              { key: 'videos' as UniverseType, label: 'Video' },
+            ]).map((t) => (
+              <button
+                key={String(t.key)}
+                type="button"
+                onClick={() => {
+                  if (t.key === null) router.push('/stock');
+                  else router.push(`/stock?type=${t.key}`);
+                }}
+                className={
+                  'rounded-full px-3 py-1 text-sm transition border ' +
+                  (universe === t.key
+                    ? 'bg-black text-white border-black'
+                    : 'bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-50')
+                }
+                aria-pressed={universe === t.key}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Right: Cart */}
+          <div ref={cartRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setCartOpen((v) => !v)}
+              className={(cartOpen ? 'cart-pulse ' : '') + 'inline-flex items-center gap-2 rounded-full bg-black text-white px-4 py-2 shadow hover:bg-zinc-800'}
+              title="Kurv"
+            >
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M7 4h-2l-1 2h2l3.6 7.59-1.35 2.44A1.99 1.99 0 0 0 8 18a2 2 0 1 0 2 2h6a2 2 0 1 0 2-2H9.42c.03-.06.06-.12.09-.18l1.1-1.98h6.45a2 2 0 0 0 1.79-1.11l3.58-7.16A1 1 0 0 0 22 4h-2l-3.6 7.2H10.1L7 4z"/></svg>
+              <span className="text-sm">Kurv</span>
+              <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white text-black px-1.5 text-[11px]">
+                {cart.length}
+              </span>
+            </button>
+
+            {cartOpen && (
+              <div className="absolute right-0 mt-2 w-72 rounded-lg border bg-white shadow-xl p-2">
+                {cart.length > 0 ? (
+                  <>
+                    <div className="max-h-64 overflow-auto divide-y">
+                      {cart.map((c) => (
+                        <div key={c.id} className="flex items-center gap-2 py-2">
+                          <img src={c.src} alt={c.alt ?? ''} className="h-10 w-14 object-cover rounded" />
+                          <div className="min-w-0 flex-1 truncate text-sm">{c.alt ?? c.id}</div>
+                          <button
+                            className="rounded px-2 py-1 text-xs border hover:bg-zinc-50"
+                            onClick={() => removeFromCart(c.id)}
+                          >
+                            Fjern
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="pt-2 flex items-center justify-between">
+                      <div className="text-xs text-zinc-600">{cart.length} i kurv</div>
+                      <button className="rounded bg-black text-white px-3 py-1.5 text-xs hover:bg-zinc-800">Til checkout</button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="py-8 text-center text-sm text-zinc-600">Kurven er tom</div>
+                )}
               </div>
-              <div className="pt-2 flex items-center justify-between">
-                <div className="text-xs text-zinc-600">{cart.length} i kurv</div>
-                <button className="rounded bg-black text-white px-3 py-1.5 text-xs hover:bg-zinc-800">Til checkout</button>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
+      <div className="h-0" />
       {/* Hero banner */}
       <section className="relative h-[320px] md:h-[420px] overflow-hidden rounded-b-xl shadow-[0_20px_60px_-20px_rgba(0,0,0,.35)]">
         <img
@@ -228,10 +321,12 @@ export default function StockPage() {
         </div>
       </section>
 
-      <div className="p-6 flex flex-col gap-6 js-reveal">
+      <div className="p-4 md:p-6 flex flex-col gap-6 js-reveal">
       {/* Top bar with heading + search */}
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-xl font-semibold">Stock</h1>
+        <h1 className="text-xl font-semibold">
+          {universe === 'photos' ? 'Stock · Billeder' : universe === 'vectors' ? 'Stock · Vektorer' : universe === 'videos' ? 'Stock · Video' : 'Stock'}
+        </h1>
         <input
           type="search"
           placeholder="Søg i Stock…"
@@ -241,8 +336,24 @@ export default function StockPage() {
         />
       </div>
 
-      {/* If no query & no filters → show Discover (front page) */}
-      {(!query && !hasActiveFilters) ? (
+      {/* Mobile actions */}
+      <div className="md:hidden -mt-2 flex items-center gap-3">
+        <button
+          onClick={() => setShowFilters(true)}
+          className="flex-1 rounded-md border px-3 py-2 text-sm bg-white active:scale-[.99]"
+        >
+          Filtre
+        </button>
+        <button
+          onClick={() => setQuery('')}
+          className="rounded-md border px-3 py-2 text-sm bg-white active:scale-[.99]"
+        >
+          Nulstil søgning
+        </button>
+      </div>
+
+      {/* If no query, no filters, and no universe → Discover */}
+      {(!query && !hasActiveFilters && !universe) ? (
         <div className="space-y-8">
           {/* Theme chips */}
           <div className="flex flex-wrap gap-2 text-xs">
@@ -376,18 +487,36 @@ export default function StockPage() {
       ) : (
         // Otherwise show the search results view (Filters + Gallery)
         <div className="flex gap-6 js-reveal">
-          <div className="w-[260px] shrink-0">
-            <Filters value={filters} onChangeAction={setFilters} />
+          <div className="hidden md:block w-[260px] shrink-0">
+            <Filters value={filters} onChangeAction={setFilters} hideType={!!universe} />
           </div>
           <div className="min-w-0 flex-1">
-            <Gallery
-              items={list}
-              onSelectAction={(it) => addToCart(it)}
-            />
+            {list.length > 0 ? (
+              <Gallery items={list} onSelectAction={(it) => addToCart(it)} />
+            ) : (
+              <div className="flex h-40 items-center justify-center rounded border border-dashed text-sm text-zinc-500">
+                Ingen resultater – prøv at ændre type, søgning eller filtre.
+              </div>
+            )}
           </div>
         </div>
       )}
       </div>
+      {/* Mobile Drawer: Filters */}
+      {showFilters && (
+        <div className="md:hidden fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowFilters(false)} />
+          <div className="absolute left-0 top-0 h-full w-[86%] max-w-[360px] bg-white shadow-xl flex flex-col">
+            <div className="flex items-center justify-between border-b p-3">
+              <div className="text-sm font-medium">Filtre</div>
+              <button onClick={() => setShowFilters(false)} className="rounded border px-2 py-1 text-sm bg-white">Luk</button>
+            </div>
+            <div className="p-3 overflow-auto">
+              <Filters value={filters} onChangeAction={setFilters} hideType={!!universe} />
+            </div>
+          </div>
+        </div>
+      )}
       <style jsx global>{`
         @keyframes kenburns {
           0% { transform: scale(1) translateZ(0); }

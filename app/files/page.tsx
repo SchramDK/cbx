@@ -258,6 +258,10 @@ export default function FilesPage() {
   /** Selected folder (demo-only) */
   const [folderId, setFolderId] = useState<string>('all');
 
+  /** Mobile drawers */
+  const [showFilters, setShowFilters] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+
   /** Filters (restored) */
   const [filters, setFilters] = useState<FiltersState>({
     types: [],
@@ -401,7 +405,7 @@ export default function FilesPage() {
 
   return (
     <ErrorBoundary>
-      <div className="p-6 flex flex-col gap-6 h-screen overflow-hidden">
+      <div className="p-4 md:p-6 flex flex-col gap-6 h-screen overflow-hidden">
         <GlobalDropOverlay onNewImagesAction={handleNew} />
 
         <div className="flex items-center justify-between">
@@ -412,26 +416,42 @@ export default function FilesPage() {
             </span>
           </div>
         </div>
+        {/* Mobile actions */}
+        <div className="md:hidden -mt-2 flex items-center gap-3">
+          <button
+            onClick={() => setShowFilters(true)}
+            className="flex-1 rounded-md border px-3 py-2 text-sm bg-white active:scale-[.99]"
+          >
+            Mapper & Filtre
+          </button>
+          <button
+            onClick={() => selected ? setShowDetails(true) : null}
+            disabled={!selected}
+            className="flex-1 rounded-md border px-3 py-2 text-sm bg-white disabled:opacity-50 disabled:cursor-not-allowed active:scale-[.99]"
+          >
+            Detaljer
+          </button>
+        </div>
 
         <div className="flex gap-6 min-h-0 flex-1 overflow-hidden">
           {/* Left: folders + filters */}
-          <div className="w-[260px] shrink-0 space-y-4">
+          <div className="hidden md:block w-[260px] shrink-0 space-y-4">
             <FoldersNav activeId={folderId} onSelectAction={setFolderId} />
             <Filters value={filters} onChangeAction={setFilters} />
           </div>
 
           {/* Center: gallery */}
-          <div className="min-w-0 flex-1 overflow-auto pr-2">
+          <div className="min-w-0 flex-1 overflow-auto md:pr-2">
             <Gallery
               items={filteredItems}
               extra={added}
               selectedId={selectedId ?? undefined}
-              onSelectAction={(it) => setSelectedId(it.id)}
+              onSelectAction={(it) => { setSelectedId(it.id); if (window.innerWidth < 768) setShowDetails(true); }}
             />
           </div>
 
           {/* Right: simple metadata editor for the selected image */}
-          <div className="w-[300px] shrink-0 border-l bg-white p-4">
+          <div className="hidden md:block w-[300px] shrink-0 border-l bg-white p-4">
             <div className="text-sm font-medium mb-3">Metadata</div>
             {!selected ? (
               <div className="text-sm text-zinc-600">Klik på et billede for at redigere metadata.</div>
@@ -536,6 +556,112 @@ export default function FilesPage() {
             )}
           </div>
         </div>
+        {/* Mobile Drawer: Folders + Filters */}
+        {showFilters && (
+          <div className="md:hidden fixed inset-0 z-50">
+            <div
+              className="absolute inset-0 bg-black/40"
+              onClick={() => setShowFilters(false)}
+            />
+            <div className="absolute left-0 top-0 h-full w-[86%] max-w-[360px] bg-white shadow-xl flex flex-col">
+              <div className="flex items-center justify-between border-b p-3">
+                <div className="text-sm font-medium">Mapper & Filtre</div>
+                <button onClick={() => setShowFilters(false)} className="rounded border px-2 py-1 text-sm bg-white">Luk</button>
+              </div>
+              <div className="p-3 space-y-4 overflow-auto">
+                <FoldersNav activeId={folderId} onSelectAction={(id)=>{ setFolderId(id); }} />
+                <Filters value={filters} onChangeAction={setFilters} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Drawer: Details */}
+        {showDetails && (
+          <div className="md:hidden fixed inset-0 z-50">
+            <div
+              className="absolute inset-0 bg-black/40"
+              onClick={() => setShowDetails(false)}
+            />
+            <div className="absolute bottom-0 left-0 right-0 max-h-[85%] bg-white rounded-t-2xl shadow-2xl">
+              <div className="flex items-center justify-between border-b p-3">
+                <div className="text-sm font-medium">Detaljer</div>
+                <button onClick={() => setShowDetails(false)} className="rounded border px-2 py-1 text-sm bg-white">Luk</button>
+              </div>
+              <div className="p-4 overflow-auto">
+                {!selected ? (
+                  <div className="text-sm text-zinc-600">Vælg et billede i galleriet.</div>
+                ) : (
+                  <form className="space-y-3" onSubmit={(e)=>e.preventDefault()}>
+                    <div className="text-xs uppercase tracking-wide text-zinc-400">ID</div>
+                    <div className="text-sm">{selected.id}</div>
+                    <label className="block">
+                      <span className="text-xs uppercase tracking-wide text-zinc-400">Alt tekst</span>
+                      <input
+                        className="mt-1 w-full border rounded px-2 py-1 text-sm"
+                        value={selected.alt ?? ''}
+                        onChange={(e)=>updateSelected('alt', e.target.value)}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs uppercase tracking-wide text-zinc-400">MIME-type</span>
+                      <select
+                        className="mt-1 w-full border rounded px-2 py-1 text-sm"
+                        value={selected.mime}
+                        onChange={(e)=>updateSelected('mime', e.target.value)}
+                      >
+                        <option value="image/jpeg">image/jpeg</option>
+                        <option value="image/png">image/png</option>
+                        <option value="image/svg+xml">image/svg+xml</option>
+                        <option value="video/mp4">video/mp4</option>
+                      </select>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selected.has_people}
+                        onChange={(e)=>updateSelected('has_people', e.currentTarget.checked)}
+                      />
+                      <span className="text-sm">Mennesker</span>
+                    </label>
+                    <label className="block">
+                      <span className="text-xs uppercase tracking-wide text-zinc-400">Dominerende farve</span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <input type="color" value={selected.dominant_color} onChange={(e)=>updateSelected('dominant_color', e.currentTarget.value)} />
+                        <input
+                          className="flex-1 border rounded px-2 py-1 text-sm"
+                          value={selected.dominant_color}
+                          onChange={(e)=>updateSelected('dominant_color', e.currentTarget.value)}
+                        />
+                      </div>
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="block">
+                        <span className="text-xs uppercase tracking-wide text-zinc-400">Width</span>
+                        <input type="number" className="mt-1 w-full border rounded px-2 py-1 text-sm" value={selected.width ?? 0} onChange={(e)=>updateSelected('width', Number(e.currentTarget.value))} />
+                      </label>
+                      <label className="block">
+                        <span className="text-xs uppercase tracking-wide text-zinc-400">Height</span>
+                        <input type="number" className="mt-1 w-full border rounded px-2 py-1 text-sm" value={selected.height ?? 0} onChange={(e)=>updateSelected('height', Number(e.currentTarget.value))} />
+                      </label>
+                    </div>
+                    {selected?.palette?.length ? (
+                      <div>
+                        <div className="text-xs uppercase tracking-wide text-zinc-400 mb-1">Palette (5)</div>
+                        <div className="flex gap-2 mb-2">
+                          {selected.palette.map(hex => (
+                            <div key={hex} className="h-6 w-6 rounded border" style={{ backgroundColor: hex }} title={hex} />
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                    <button className="mt-2 w-full rounded-md border px-3 py-2 text-sm bg-white" onClick={()=>setShowDetails(false)}>Luk</button>
+                  </form>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </ErrorBoundary>
   );

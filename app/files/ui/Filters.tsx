@@ -12,6 +12,7 @@ export type FiltersState = {
 type Props = {
   value?: FiltersState;
   onChangeAction?: (next: FiltersState) => void;
+  hideType?: boolean;
 };
 
 const DEFAULTS: FiltersState = {
@@ -40,7 +41,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-export default function Filters({ value, onChangeAction }: Props) {
+export default function Filters({ value, onChangeAction, hideType }: Props) {
   const [local, setLocal] = useState<FiltersState>(value ? { ...DEFAULTS, ...value } : DEFAULTS);
   const colorId = useId();
   const peopleName = useId();
@@ -66,26 +67,28 @@ export default function Filters({ value, onChangeAction }: Props) {
     <aside className="w-[260px] shrink-0 space-y-3">
       <div className="px-2 pb-1 text-sm font-semibold text-zinc-700">Filtre</div>
 
-      <Section title="Type">
-        <div className="space-y-2">
-          {[
-            ['photo', 'Foto'],
-            ['vector', 'Vektor'],
-            ['illustration', 'Illustration'],
-            ['video', 'Video'],
-          ].map(([key, label]) => (
-            <label key={key} className="flex cursor-pointer items-center gap-3 text-sm">
-              <input
-                type="checkbox"
-                checked={local.types.includes(key)}
-                onChange={() => toggleType(key)}
-                className="h-4 w-4"
-              />
-              <span>{label}</span>
-            </label>
-          ))}
-        </div>
-      </Section>
+      {!hideType && (
+        <Section title="Type">
+          <div className="space-y-2">
+            {[
+              ['photo', 'Foto'],
+              ['vector', 'Vektor'],
+              ['illustration', 'Illustration'],
+              ['video', 'Video'],
+            ].map(([key, label]) => (
+              <label key={key} className="flex cursor-pointer items-center gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={local.types.includes(key)}
+                  onChange={() => toggleType(key)}
+                  className="h-4 w-4"
+                />
+                <span>{label}</span>
+              </label>
+            ))}
+          </div>
+        </Section>
+      )}
 
       <Section title="Personer">
         <div className="flex flex-col gap-2 text-sm">

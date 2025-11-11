@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 
-type Folder = { id: string; name: string };
+type Folder = { id: string; name: string; emoji?: string };
 
 export default function FoldersNav({
   activeId,
@@ -16,10 +16,10 @@ export default function FoldersNav({
   useEffect(() => {
     // Demo: statisk liste – byt til fetch('/api/folders')
     setFolders([
-      { id: 'all', name: 'All photos' },
-      { id: 'ferier', name: 'Ferier' },
-      { id: 'por', name: 'Portrætter' },
-      { id: 'prod', name: 'Produkter' },
+      { id: 'all', name: 'All photos', emoji: '📁' },
+      { id: 'ferier', name: 'Ferier', emoji: '🏖️' },
+      { id: 'por', name: 'Portrætter', emoji: '🧑‍🦰' },
+      { id: 'prod', name: 'Produkter', emoji: '📦' },
     ]);
   }, []);
 
@@ -37,6 +37,7 @@ export default function FoldersNav({
                 activeId === f.id ? 'bg-zinc-100 font-medium text-zinc-900' : 'text-zinc-700'
               )}
             >
+              <span className="mr-2">{f.emoji}</span>
               {f.name}
             </button>
           </li>
