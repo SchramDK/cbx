@@ -75,9 +75,18 @@ function StockPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const universe: UniverseType = (searchParams.get('type') as UniverseType) ?? null;
-  // Reset search & filters whenever the universe (tabs) changes
+  // Keep `query` in sync with `?q` in the URL
   useEffect(() => {
-    setQuery('');
+    const qParam = searchParams.get('q') ?? '';
+    setQuery(qParam);
+  }, [searchParams]);
+
+  // Close cart when route-related state changes
+  useEffect(() => {
+    setCartOpen(false);
+  }, [universe, query]);
+  // Reset filters whenever the universe (tabs) changes (preserve query)
+  useEffect(() => {
     setFilters({
       types: [],
       people: 'any',
@@ -85,7 +94,10 @@ function StockPageInner() {
       colorTolerance: 30,
     });
     setShowFilters(false);
-  }, [universe]);
+    
+      // Tilføj dette for pænere oplevelse, så man ser resultaterne:
+  try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch {}
+}, [universe]);
 
   // --- Cart state (demo) ---
   type CartItem = DemoItem;
@@ -110,7 +122,21 @@ function StockPageInner() {
     };
     document.addEventListener('click', onDocClick);
     return () => document.removeEventListener('click', onDocClick);
-  }, []);
+}, [universe, query]);
+
+  // Debounce URL updates when typing in search
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (typeof window === 'undefined') return;
+      const params = new URLSearchParams(window.location.search);
+      if (query && query.trim()) params.set('q', query.trim());
+      else params.delete('q');
+      const qs = params.toString();
+      const next = `${window.location.pathname}${qs ? `?${qs}` : ''}`;
+      router.replace(next);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [query, router]);
 
   const list = useMemo<DemoItem[]>(() => {
     // Universe pre-filter (photos | vectors | videos) from URL
@@ -126,7 +152,11 @@ function StockPageInner() {
 
     const q = query.trim().toLowerCase();
     if (q) {
-      r = r.filter(it => it.title.toLowerCase().includes(q) || it.tags.some(t => t.includes(q)));
+      r = r.filter(
+        it =>
+          it.title.toLowerCase().includes(q) ||
+          it.tags.some(t => t.toLowerCase().includes(q))
+      );
     }
 
     if (filters.types.length) {
@@ -186,14 +216,14 @@ function StockPageInner() {
     height: it.height,
   });
 
-  // Reveal-on-scroll for sections
-  useEffect(() => {
+// Reveal-on-scroll for sections (ensure first paint shows items already in view)
+useEffect(() => {
     const els = Array.from(document.querySelectorAll<HTMLElement>('.js-reveal'));
     if (!('IntersectionObserver' in window) || els.length === 0) {
-      // Fallback: show immediately
       els.forEach(el => el.classList.add('reveal-show'));
       return;
     }
+  
     const io = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
@@ -202,8 +232,34 @@ function StockPageInner() {
         }
       });
     }, { rootMargin: '0px 0px -10% 0px', threshold: 0.1 });
-    els.forEach(el => io.observe(el));
+  
+    // Immediately reveal elements already in viewport; observe the rest
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    els.forEach((el) => {
+      const rect = el.getBoundingClientRect();
+      if (rect.top < vh * 0.9) {
+        el.classList.add('reveal-show');
+      } else {
+        io.observe(el);
+      }
+    });
+  
     return () => io.disconnect();
+  }, [universe, query]);
+
+  // Keyboard shortcut: '/' focuses hero search when not typing already
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName?.toLowerCase();
+      if (e.key === '/' && tag !== 'input' && tag !== 'textarea') {
+        e.preventDefault();
+        const el = document.getElementById('stock-hero-input') as HTMLInputElement | null;
+        el?.focus();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
   }, []);
 
   // 3) Dual mode: Discover front page or Search Results
@@ -223,9 +279,10 @@ function StockPageInner() {
               <button
                 key={String(t.key)}
                 type="button"
+                title={t.label}
                 onClick={() => {
                   if (t.key === null) router.push('/stock');
-                  else router.push(`/stock?type=${t.key}`);
+                  else router.push(`/stock?type=${t.key}${query ? `&q=${encodeURIComponent(query.trim())}` : ''}`);
                 }}
                 className={
                   'rounded-full px-3 py-1 text-sm transition border ' +
@@ -234,6 +291,7 @@ function StockPageInner() {
                     : 'bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-50')
                 }
                 aria-pressed={universe === t.key}
+                aria-current={universe === t.key ? 'page' : undefined}
               >
                 {t.label}
               </button>
@@ -305,14 +363,23 @@ function StockPageInner() {
           </p>
           <div className="flex w-full max-w-md overflow-hidden rounded-md border border-white/20 bg-white/10 backdrop-blur-md shadow-[0_8px_30px_rgba(0,0,0,.25)] ring-1 ring-white/10 focus-within:ring-2 focus-within:ring-white/50 transition">
             <input
+              id="stock-hero-input"
               type="search"
               placeholder="Søg i Stock…"
               value={query}
               onChange={(e)=>setQuery(e.currentTarget.value)}
               className="flex-1 bg-transparent px-4 py-2 text-white placeholder:text-white/70 focus:outline-none focus:bg-white/15"
+              aria-label="Søg i Stock"
             />
             <button
-              onClick={()=>{}}
+              onClick={() => {
+                if (typeof window === 'undefined') return;
+                const params = new URLSearchParams(window.location.search);
+                const qv = query.trim();
+                if (qv) params.set('q', qv); else params.delete('q');
+                const qs = params.toString();
+                router.replace(`${window.location.pathname}${qs ? `?${qs}` : ''}`);
+              }}
               className="px-4 py-2 bg-white/25 hover:bg-white/35 active:bg-white/40 text-white text-sm font-medium transition"
             >
               Søg
@@ -321,19 +388,45 @@ function StockPageInner() {
         </div>
       </section>
 
-      <div className="p-4 md:p-6 flex flex-col gap-6 js-reveal">
+      <div className="p-4 md:p-6 flex flex-col gap-6">
       {/* Top bar with heading + search */}
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-xl font-semibold">
+        <h1 className="text-xl font-semibold flex items-center gap-2">
           {universe === 'photos' ? 'Stock · Billeder' : universe === 'vectors' ? 'Stock · Vektorer' : universe === 'videos' ? 'Stock · Video' : 'Stock'}
+          <span className="text-xs font-normal text-zinc-500" aria-live="polite">({list.length})</span>
         </h1>
-        <input
-          type="search"
-          placeholder="Søg i Stock…"
-          className="ml-auto w-[260px] rounded border px-3 py-2 text-sm"
-          value={query}
-          onChange={(e)=>setQuery(e.currentTarget.value)}
-        />
+        <div className="ml-auto relative">
+          <input
+            id="stock-top-input"
+            type="search"
+            placeholder="Søg i Stock…"
+            className="w-[260px] rounded border px-3 py-2 pr-8 text-sm"
+            value={query}
+            onChange={(e)=>setQuery(e.currentTarget.value)}
+            onKeyDown={(e)=>{
+              if (e.key === 'Enter') {
+                if (typeof window === 'undefined') return;
+                const params = new URLSearchParams(window.location.search);
+                const qv = query.trim();
+                if (qv) params.set('q', qv); else params.delete('q');
+                const qs = params.toString();
+                router.replace(`${window.location.pathname}${qs ? `?${qs}` : ''}`);
+              }
+            }}
+            aria-label="Søg i Stock"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 grid place-items-center h-6 w-6 rounded hover:bg-zinc-100"
+              aria-label="Ryd søgning"
+              title="Ryd søgning"
+            >
+              ×
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Mobile actions */}
@@ -486,7 +579,7 @@ function StockPageInner() {
         </div>
       ) : (
         // Otherwise show the search results view (Filters + Gallery)
-        <div className="flex gap-6 js-reveal">
+        <div className="flex gap-6">
           <div className="hidden md:block w-[260px] shrink-0">
             <Filters value={filters} onChangeAction={setFilters} hideType={!!universe} />
           </div>

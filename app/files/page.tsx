@@ -258,6 +258,9 @@ export default function FilesPage() {
   /** Selected folder (demo-only) */
   const [folderId, setFolderId] = useState<string>('all');
 
+  /** Text search */
+  const [q, setQ] = useState('');
+
   /** Mobile drawers */
   const [showFilters, setShowFilters] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -269,6 +272,58 @@ export default function FilesPage() {
     colorHex: null,
     colorTolerance: 30,
   });
+
+  // Enter animations
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => {
+    const t = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(t);
+  }, []);
+
+  // Persist/restore UI state for a nicer demo experience
+  React.useEffect(() => {
+    try {
+      const q0 = localStorage.getItem('FILES_Q');
+      const f0 = localStorage.getItem('FILES_FOLDER');
+      const s0 = localStorage.getItem('FILES_FILTERS');
+      if (q0 !== null) setQ(q0);
+      if (f0) setFolderId(f0);
+      if (s0) {
+        const parsed = JSON.parse(s0);
+        if (parsed && typeof parsed === 'object') setFilters((prev) => ({ ...prev, ...parsed }));
+      }
+    } catch {}
+    // keyboard shortcuts
+    const onKey = (e: KeyboardEvent) => {
+      // Press '/' to focus search
+      if (e.key === '/' && (e.target as HTMLElement)?.tagName !== 'INPUT') {
+        e.preventDefault();
+        const el = document.getElementById('files-search-input');
+        if (el) (el as HTMLInputElement).focus();
+      }
+      // Press 'f' to open filters on mobile
+      if (e.key.toLowerCase() === 'f' && window.innerWidth < 768) {
+        setShowFilters(true);
+      }
+      // Escape closes drawers
+      if (e.key === 'Escape') {
+        setShowFilters(false);
+        setShowDetails(false);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
+  React.useEffect(() => {
+    try { localStorage.setItem('FILES_Q', q); } catch {}
+  }, [q]);
+  React.useEffect(() => {
+    try { localStorage.setItem('FILES_FOLDER', folderId); } catch {}
+  }, [folderId]);
+  React.useEffect(() => {
+    try { localStorage.setItem('FILES_FILTERS', JSON.stringify(filters)); } catch {}
+  }, [filters]);
 
   /** Add new images (drag-drop) into our dataset with default metadata */
   const handleNew = React.useCallback((files: DemoItem[]) => {
@@ -317,6 +372,15 @@ export default function FilesPage() {
   /** Build gallery items with folder + filters */
   const filteredItems = useMemo(() => {
     let r = [...rows];
+
+    // Text query (id/alt)
+    const qq = q.trim().toLowerCase();
+    if (qq) {
+      r = r.filter(row => {
+        const hay = `${row.id} ${row.alt ?? ''}`.toLowerCase();
+        return hay.includes(qq);
+      });
+    }
 
     // Folder filter (demo)
     if (folderId !== 'all') {
@@ -368,7 +432,14 @@ export default function FilesPage() {
       width: row.width,
       height: row.height,
     })) as DemoItem[];
-  }, [rows, folderId, filters]);
+  }, [rows, folderId, filters, q]);
+
+  // Ensure selection stays valid when filters/search change
+  React.useEffect(() => {
+    if (!selectedId) return;
+    const ok = filteredItems.some((it) => it.id === selectedId);
+    if (!ok) setSelectedId(null);
+  }, [filteredItems, selectedId]);
 
   /** Selected row + convenience setters */
   const selected = selectedId ? rows.find(r => r.id === selectedId) ?? null : null;
@@ -408,14 +479,38 @@ export default function FilesPage() {
       <div className="p-4 md:p-6 flex flex-col gap-6 h-screen overflow-hidden">
         <GlobalDropOverlay onNewImagesAction={handleNew} />
 
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">Files (Demo – håndskrevne billeder)</h1>
-          <div className="flex items-center gap-3">
-            <span className="text-[11px] text-zinc-500">
+        <div className={
+          `relative flex items-center justify-between transition-all duration-500 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`
+        }>
+          <h1 className="text-xl font-semibold">Files</h1>
+          <div className="hidden md:flex items-center gap-3">
+            <div className="relative">
+              <input
+                id="files-search-input"
+                type="search"
+                placeholder="Søg i filer…"
+                value={q}
+                onChange={(e)=>setQ(e.currentTarget.value)}
+                className="w-[260px] rounded border px-3 py-2 text-sm pr-8"
+                aria-label="Søg i filer"
+              />
+              {q && (
+                <button
+                  type="button"
+                  onClick={() => setQ('')}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 grid place-items-center h-6 w-6 rounded hover:bg-zinc-100 active:scale-95"
+                  aria-label="Ryd søgning"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+            <span className="text-[11px] text-zinc-500" aria-live="polite">
               items:{filteredItems.length} · uploads:{added.length}
             </span>
           </div>
         </div>
+        <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200 to-transparent" />
         {/* Mobile actions */}
         <div className="md:hidden -mt-2 flex items-center gap-3">
           <button
@@ -432,26 +527,73 @@ export default function FilesPage() {
             Detaljer
           </button>
         </div>
+        {/* Mobile search */}
+        <div className="md:hidden -mt-2">
+          <div className="relative">
+            <input
+              id="files-search-input"
+              type="search"
+              placeholder="Søg i filer…"
+              value={q}
+              onChange={(e)=>setQ(e.currentTarget.value)}
+              className="w-full rounded-md border px-3 py-2 pr-9 text-sm bg-white"
+              aria-label="Søg i filer"
+            />
+            {q && (
+              <button
+                type="button"
+                onClick={() => setQ('')}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 grid place-items-center h-7 w-7 rounded hover:bg-zinc-100"
+                aria-label="Ryd søgning"
+              >
+                ×
+              </button>
+            )}
+          </div>
+        </div>
 
         <div className="flex gap-6 min-h-0 flex-1 overflow-hidden">
           {/* Left: folders + filters */}
-          <div className="hidden md:block w-[260px] shrink-0 space-y-4">
+          <div className={`hidden md:block w-[260px] shrink-0 space-y-4 transition-all duration-500 ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'}`}>
             <FoldersNav activeId={folderId} onSelectAction={setFolderId} />
             <Filters value={filters} onChangeAction={setFilters} />
           </div>
 
           {/* Center: gallery */}
-          <div className="min-w-0 flex-1 overflow-auto md:pr-2">
-            <Gallery
-              items={filteredItems}
-              extra={added}
-              selectedId={selectedId ?? undefined}
-              onSelectAction={(it) => { setSelectedId(it.id); if (window.innerWidth < 768) setShowDetails(true); }}
-            />
+          <div className={`relative min-w-0 flex-1 overflow-auto md:pr-2 transition-all duration-500 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'}`}>
+            {filteredItems.length === 0 ? (
+              <div className="h-full grid place-items-center p-6">
+                <div className="text-center max-w-sm">
+                  <div className="text-lg font-medium mb-1">Ingen resultater</div>
+                  <p className="text-sm text-zinc-600 mb-3">Prøv at ændre dine filtre eller ryd søgningen.</p>
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      className="rounded border px-3 py-2 text-sm bg-white hover:bg-zinc-50 active:scale-95"
+                      onClick={() => setQ('')}
+                    >
+                      Ryd søgning
+                    </button>
+                    <button
+                      className="rounded border px-3 py-2 text-sm bg-white hover:bg-zinc-50 active:scale-95"
+                      onClick={() => setFilters({ types: [], people: 'any', colorHex: null, colorTolerance: 30 })}
+                    >
+                      Nulstil filtre
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <Gallery
+                items={filteredItems}
+                extra={added}
+                selectedId={selectedId ?? undefined}
+                onSelectAction={(it) => { setSelectedId(it.id); if (window.innerWidth < 768) setShowDetails(true); }}
+              />
+            )}
           </div>
 
           {/* Right: simple metadata editor for the selected image */}
-          <div className="hidden md:block w-[300px] shrink-0 border-l bg-white p-4">
+          <div className={`hidden md:block w-[300px] shrink-0 border-l bg-white p-4 transition-all duration-500 ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2'}`}>
             <div className="text-sm font-medium mb-3">Metadata</div>
             {!selected ? (
               <div className="text-sm text-zinc-600">Klik på et billede for at redigere metadata.</div>
@@ -563,7 +705,7 @@ export default function FilesPage() {
               className="absolute inset-0 bg-black/40"
               onClick={() => setShowFilters(false)}
             />
-            <div className="absolute left-0 top-0 h-full w-[86%] max-w-[360px] bg-white shadow-xl flex flex-col">
+            <div className="absolute left-0 top-0 h-full w-[86%] max-w-[360px] bg-white shadow-xl flex flex-col transform transition-transform duration-300 ease-out translate-x-0">
               <div className="flex items-center justify-between border-b p-3">
                 <div className="text-sm font-medium">Mapper & Filtre</div>
                 <button onClick={() => setShowFilters(false)} className="rounded border px-2 py-1 text-sm bg-white">Luk</button>
@@ -583,7 +725,7 @@ export default function FilesPage() {
               className="absolute inset-0 bg-black/40"
               onClick={() => setShowDetails(false)}
             />
-            <div className="absolute bottom-0 left-0 right-0 max-h-[85%] bg-white rounded-t-2xl shadow-2xl">
+            <div className="absolute bottom-0 left-0 right-0 max-h-[85%] bg-white rounded-t-2xl shadow-2xl transform transition-transform duration-300 ease-out translate-y-0">
               <div className="flex items-center justify-between border-b p-3">
                 <div className="text-sm font-medium">Detaljer</div>
                 <button onClick={() => setShowDetails(false)} className="rounded border px-2 py-1 text-sm bg-white">Luk</button>
