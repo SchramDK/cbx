@@ -51,7 +51,11 @@ export default function Sidebar() {
     <aside className="fixed inset-y-0 left-0 z-40 w-[76px] border-r bg-white">
       {/* Logo */}
       <div className="h-14 border-b flex items-center justify-center">
-        <span className="font-semibold tracking-tight">CBX</span>
+        <img
+          src="/logo.svg"
+          alt="Colourbox Logo"
+          className="h-6 w-auto"
+        />
       </div>
 
       {/* Nav */}
