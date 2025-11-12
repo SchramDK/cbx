@@ -266,7 +266,7 @@ useEffect(() => {
   return (
     <div className="flex flex-col gap-6">
       {/* Universe Tabs – top of page */}
-      <div className="sticky top-0 z-[70] bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b">
+      <div className="sticky top-0 z-[70] bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 shadow-sm">
         <div className="mx-auto max-w-6xl px-4 py-2 flex items-center justify-between gap-2">
           {/* Left: Tabs */}
           <div className="flex flex-wrap items-center gap-2">
@@ -344,11 +344,10 @@ useEffect(() => {
           </div>
         </div>
       </div>
-      <div className="h-0" />
       {/* Hero banner */}
       <section className="relative h-[320px] md:h-[420px] overflow-hidden rounded-b-xl shadow-[0_20px_60px_-20px_rgba(0,0,0,.35)]">
         <img
-          src="https://picsum.photos/id/1056/2000/800"
+          src="https://picsum.photos/id/1043/2000/800"
           alt="Stock inspiration banner"
           className="h-full w-full object-cover will-change-transform animate-kenburns"
         />

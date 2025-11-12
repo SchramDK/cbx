@@ -33,14 +33,35 @@ const COLOR_THEMES = ['#2622A5', '#E4572E', '#3AB795', '#F3A712', '#17BEBB', '#A
 
 export default function Home() {
   const [q, setQ] = React.useState('');
+  const [spot, setSpot] = React.useState<{ x: number; y: number; show: boolean }>({ x: 0, y: 0, show: false });
+  function handleHeroMove(e: React.MouseEvent<HTMLElement>) {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setSpot({ x: e.clientX - rect.left, y: e.clientY - rect.top, show: true });
+  }
+  function handleHeroLeave() {
+    setSpot((s) => ({ ...s, show: false }));
+  }
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
       <main className="max-w-6xl mx-auto p-4 md:p-6 space-y-8">
         {/* Hero banner (clean + powerful) */}
-        <section className="relative overflow-hidden rounded-2xl border bg-zinc-900 text-white">
+        <section
+          onMouseMove={handleHeroMove}
+          onMouseLeave={handleHeroLeave}
+          className="relative overflow-hidden rounded-2xl border bg-zinc-900 text-white will-change-transform"
+        >
           {/* background accent */}
           <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
           <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/30 to-transparent" />
+
+          {/* interactive spotlight */}
+          <div
+            className="pointer-events-none absolute inset-0 transition-opacity duration-300"
+            style={{
+              opacity: spot.show ? 1 : 0,
+              backgroundImage: `radial-gradient(520px circle at ${spot.x}px ${spot.y}px, rgba(255,255,255,0.18), transparent 70%)`,
+            }}
+          />
 
           <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-4 p-6 md:p-10">
             <div className="md:col-span-7 space-y-3">
@@ -50,7 +71,15 @@ export default function Home() {
               </p>
 
               {/* search */}
-              <div className="mt-4 flex w-full max-w-xl overflow-hidden rounded-md border border-white/20 bg-white/10 backdrop-blur ring-1 ring-white/10 focus-within:ring-2 focus-within:ring-white/50 transition">
+              <div
+                onMouseMove={(e)=>{
+                  const el = e.currentTarget as HTMLElement;
+                  const r = el.getBoundingClientRect();
+                  el.style.setProperty('--mx', `${e.clientX - r.left}px`);
+                  el.style.setProperty('--my', `${e.clientY - r.top}px`);
+                }}
+                className="mt-4 flex w-full max-w-xl overflow-hidden rounded-md border border-white/20 bg-white/10 backdrop-blur ring-1 ring-white/10 focus-within:ring-2 focus-within:ring-white/50 transition"
+              >
                 <input
                   type="search"
                   placeholder="Søg i Stock…"
@@ -61,7 +90,7 @@ export default function Home() {
                 />
                 <button
                   onClick={()=>{ window.location.href = `/stock?q=${encodeURIComponent(q)}`; }}
-                  className="px-4 py-2 bg-white/25 hover:bg-white/35 active:bg-white/40 text-white text-sm font-medium transition"
+                  className="relative overflow-hidden px-4 py-2 bg-white/25 hover:bg-white/35 active:bg-white/40 text-white text-sm font-medium transition btn-ripple"
                 >
                   Søg
                 </button>
@@ -78,14 +107,14 @@ export default function Home() {
 
             {/* quick mosaic thumbs (right) */}
             <div className="md:col-span-5 grid grid-cols-3 gap-2 md:gap-3 self-end">
-              {FILES_PREVIEW.slice(0,3).map((it)=> (
-                <Link key={it.id} href={it.href} className="group relative block overflow-hidden rounded-lg">
+              {FILES_PREVIEW.slice(0,3).map((it, idx)=> (
+                <Link key={it.id} href={it.href} className={`group relative block overflow-hidden rounded-lg ${idx % 2 ? 'float-slow' : ''}`}>
                   <img src={it.src} alt={it.alt ?? ''} className="h-24 md:h-28 w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
                   <div className="pointer-events-none absolute inset-0 bg-black/20 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
                 </Link>
               ))}
-              {STOCK_PREVIEW.slice(0,3).map((it)=> (
-                <Link key={it.id} href={it.href} className="group relative block overflow-hidden rounded-lg">
+              {STOCK_PREVIEW.slice(0,3).map((it, idx)=> (
+                <Link key={it.id} href={it.href} className={`group relative block overflow-hidden rounded-lg ${idx % 2 ? 'float-slow' : ''}`}>
                   <img src={it.src} alt={it.alt ?? ''} className="h-24 md:h-28 w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
                   <div className="pointer-events-none absolute inset-0 bg-black/20 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
                 </Link>
@@ -162,6 +191,22 @@ export default function Home() {
             <ThemeCard title="Produkter" href="/stock" src="https://picsum.photos/id/1060/800/600" />
           </div>
         </section>
+        <style jsx>{`
+          @keyframes floatY { from { transform: translateY(0); } to { transform: translateY(-6px); } }
+          .float-slow { animation: floatY 3.5s ease-in-out infinite alternate; }
+
+          /* Ripple for the search button */
+          .btn-ripple::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at var(--mx,50%) var(--my,50%), rgba(255,255,255,0.35), transparent 45%);
+            opacity: 0;
+            transition: opacity 220ms ease;
+            pointer-events: none;
+          }
+          .btn-ripple:hover::after { opacity: 1; }
+        `}</style>
       </main>
     </div>
   );
@@ -171,7 +216,7 @@ export default function Home() {
 
 function MosaicItem({ item, className, label }: { item: PreviewItem; className?: string; label?: string }) {
   return (
-    <Link href={item.href} className={`group relative block overflow-hidden rounded-lg bg-zinc-100 ${className ?? ''}`}>
+    <Link href={item.href} className={`group relative block overflow-hidden rounded-lg bg-zinc-100 transition-transform duration-300 will-change-transform hover:-translate-y-1 hover:shadow-xl ${className ?? ''}`}>
       <img src={item.src} alt={item.alt ?? ''} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
       {label ? (
@@ -186,7 +231,7 @@ function PreviewGrid({ items }: { items: PreviewItem[] }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       {items.map((it) => (
-        <Link key={it.id} href={it.href} className="group relative block overflow-hidden rounded-lg bg-zinc-100">
+        <Link key={it.id} href={it.href} className="group relative block overflow-hidden rounded-lg bg-zinc-100 transition-transform duration-300 will-change-transform hover:-translate-y-1 hover:shadow-xl">
           <img src={it.src} alt={it.alt ?? ''} className="h-32 sm:h-44 w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" />
           <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
           <div className="absolute bottom-2 right-2 text-[11px] px-2 py-1 rounded bg-white/90 text-zinc-800 shadow opacity-0 group-hover:opacity-100">Åbn</div>
@@ -210,7 +255,7 @@ function ThemeCard({ title, href, src }: { title: string; href: string; src: str
 
 function QuickAction({ href, title, subtitle }: { href: string; title: string; subtitle?: string }) {
   return (
-    <Link href={href} className="group block rounded-lg border bg-white p-4 active:scale-[.99] hover:shadow-sm transition-transform transition-shadow">
+    <Link href={href} className="group block rounded-lg border bg-white p-4 active:scale-[.99] hover:-translate-y-0.5 hover:shadow-md transition-transform transition-shadow will-change-transform">
       <div className="text-sm font-medium">{title}</div>
       {subtitle ? <div className="text-xs text-zinc-500">{subtitle}</div> : null}
     </Link>
