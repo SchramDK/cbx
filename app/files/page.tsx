@@ -9,248 +9,12 @@ import GlobalDropOverlay from "./ui/GlobalDropOverlay";
 import ErrorBoundary from "./ui/ErrorBoundary";
 import FoldersNav from "../ui/FoldersNav";
 import Filters, { FiltersState } from "./ui/Filters";
+import { IMAGES, type Row } from "../data/images";
 
-/** ---- Row type for our demo dataset ---- */
-type Row = {
-  id: string;
-  src: string;
-  mime: string;             // "image/jpeg" | "image/png" | "video/mp4" | ...
-  has_people: boolean;
-  dominant_color: string;   // hex, e.g. "#a18072"
-  width?: number;
-  height?: number;
-  alt?: string;
-  palette?: string[];
-  folder?: string;          // NEW: demo folder id (matches FoldersNav ids)
-};
-
-/** ---- Hand-authored dataset: add your real images here ----
- * Du kan ændre hver post (src, has_people, dominant_color osv.)
- * Kopiér en linje og sæt din egen URL ind. Brug lokale /public-filer
- * eller eksterne URLs. Farven bruges til farvefilteret.
- */
-const INITIAL_IMAGES: Row[] = [
-  // --- Ferier ---
-  {
-    id: "hero-01",
-    src: "https://picsum.photos/id/1015/1600/1066",
-    mime: "image/jpeg",
-    has_people: false,
-    dominant_color: "#6b879a",
-    width: 1600,
-    height: 1066,
-    alt: "Mountains and water",
-    folder: "ferier",
-  },
-  {
-    id: "beach-01",
-    src: "https://picsum.photos/id/1016/1600/1066",
-    mime: "image/jpeg",
-    has_people: true,
-    dominant_color: "#8ac0d6",
-    width: 1600,
-    height: 1066,
-    alt: "Beach and ocean",
-    folder: "ferier",
-  },
-  {
-    id: "forest-01",
-    src: "https://picsum.photos/id/1018/1600/1066",
-    mime: "image/jpeg",
-    has_people: false,
-    dominant_color: "#2e5b3c",
-    width: 1600,
-    height: 1066,
-    alt: "Forest trail",
-    folder: "ferier",
-  },
-  {
-    id: "cabins-01",
-    src: "https://picsum.photos/id/1019/1600/1066",
-    mime: "image/jpeg",
-    has_people: false,
-    dominant_color: "#6b4a3b",
-    width: 1600,
-    height: 1066,
-    alt: "Cabins by the lake",
-    folder: "ferier",
-  },
-  {
-    id: "lake-01",
-    src: "https://picsum.photos/id/1020/1600/1066",
-    mime: "image/jpeg",
-    has_people: true,
-    dominant_color: "#4a7a8e",
-    width: 1600,
-    height: 1066,
-    alt: "Lake and mountains",
-    folder: "ferier",
-  },
-
-  // --- Portrætter ---
-  {
-    id: "people-portrait-01",
-    src: "https://picsum.photos/id/1027/1600/1066",
-    mime: "image/jpeg",
-    has_people: true,
-    dominant_color: "#cfa483",
-    width: 1600,
-    height: 1066,
-    alt: "Portrait",
-    folder: "por",
-  },
-  {
-    id: "people-portrait-02",
-    src: "https://picsum.photos/id/1021/1600/1066",
-    mime: "image/jpeg",
-    has_people: true,
-    dominant_color: "#a46f58",
-    width: 1600,
-    height: 1066,
-    alt: "Portrait outdoors",
-    folder: "por",
-  },
-  {
-    id: "people-portrait-03",
-    src: "https://picsum.photos/id/1024/1600/1066",
-    mime: "image/jpeg",
-    has_people: true,
-    dominant_color: "#8b6d6a",
-    width: 1600,
-    height: 1066,
-    alt: "Casual portrait",
-    folder: "por",
-  },
-  {
-    id: "people-portrait-04",
-    src: "https://picsum.photos/id/1025/1600/1066",
-    mime: "image/jpeg",
-    has_people: true,
-    dominant_color: "#5c6b78",
-    width: 1600,
-    height: 1066,
-    alt: "Studio portrait",
-    folder: "por",
-  },
-  {
-    id: "people-portrait-05",
-    src: "https://picsum.photos/id/1022/1600/1066",
-    mime: "image/jpeg",
-    has_people: true,
-    dominant_color: "#b49a85",
-    width: 1600,
-    height: 1066,
-    alt: "Street portrait",
-    folder: "por",
-  },
-
-  // --- Produkter ---
-  {
-    id: "product-01",
-    src: "https://picsum.photos/id/1060/1600/1066",
-    mime: "image/jpeg",
-    has_people: false,
-    dominant_color: "#a18072",
-    width: 1600,
-    height: 1066,
-    alt: "Product still life",
-    folder: "prod",
-  },
-  {
-    id: "product-02",
-    src: "https://picsum.photos/id/1069/1600/1066",
-    mime: "image/jpeg",
-    has_people: false,
-    dominant_color: "#3c3c3c",
-    width: 1600,
-    height: 1066,
-    alt: "Minimal product",
-    folder: "prod",
-  },
-  {
-    id: "product-03",
-    src: "https://picsum.photos/id/1074/1600/1066",
-    mime: "image/jpeg",
-    has_people: false,
-    dominant_color: "#6e8ca0",
-    width: 1600,
-    height: 1066,
-    alt: "Styled product",
-    folder: "prod",
-  },
-  {
-    id: "product-04",
-    src: "https://picsum.photos/id/1076/1600/1066",
-    mime: "image/jpeg",
-    has_people: false,
-    dominant_color: "#d3c9b8",
-    width: 1600,
-    height: 1066,
-    alt: "Product on background",
-    folder: "prod",
-  },
-  {
-    id: "product-05",
-    src: "https://picsum.photos/id/1080/1600/1066",
-    mime: "image/jpeg",
-    has_people: false,
-    dominant_color: "#4a5568",
-    width: 1600,
-    height: 1066,
-    alt: "Product packaging",
-    folder: "prod",
-  },
-
-  // --- City / blandet ---
-  {
-    id: "city-01",
-    src: "https://picsum.photos/id/1011/1600/1066",
-    mime: "image/jpeg",
-    has_people: true,
-    dominant_color: "#2a2a2a",
-    width: 1600,
-    height: 1066,
-    alt: "City skyline",
-    folder: "ferier",
-  },
-  {
-    id: "city-02",
-    src: "https://picsum.photos/id/1012/1600/1066",
-    mime: "image/jpeg",
-    has_people: false,
-    dominant_color: "#4b5b6a",
-    width: 1600,
-    height: 1066,
-    alt: "City bridge",
-    folder: "ferier",
-  },
-  {
-    id: "city-03",
-    src: "https://picsum.photos/id/1013/1600/1066",
-    mime: "image/jpeg",
-    has_people: true,
-    dominant_color: "#6f7a88",
-    width: 1600,
-    height: 1066,
-    alt: "City street",
-    folder: "ferier",
-  },
-  {
-    id: "city-04",
-    src: "https://picsum.photos/id/1014/1600/1066",
-    mime: "image/jpeg",
-    has_people: false,
-    dominant_color: "#8aa0b5",
-    width: 1600,
-    height: 1066,
-    alt: "Harbor",
-    folder: "ferier",
-  },
-];
 
 export default function FilesPage() {
   /** State: the editable dataset */
-  const [rows, setRows] = useState<Row[]>(INITIAL_IMAGES);
+  const [rows, setRows] = useState<Row[]>(IMAGES);
   /** Preview of newly dropped images (optional visual cue) */
   const [added, setAdded] = useState<DemoItem[]>([]);
   /** Selected image for metadata editing */
@@ -264,6 +28,11 @@ export default function FilesPage() {
   /** Mobile drawers */
   const [showFilters, setShowFilters] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+
+  /** Desktop: show/hide folders sidebar */
+  const [showFolders, setShowFolders] = useState<boolean>(true);
+  /** Desktop: show/hide metadata sidebar */
+  const [showMeta, setShowMeta] = useState<boolean>(true);
 
   /** Filters (restored) */
   const [filters, setFilters] = useState<FiltersState>({
@@ -324,6 +93,34 @@ export default function FilesPage() {
   React.useEffect(() => {
     try { localStorage.setItem('FILES_FILTERS', JSON.stringify(filters)); } catch {}
   }, [filters]);
+
+  // Restore folder visibility
+  React.useEffect(() => {
+    try {
+      const v = localStorage.getItem('FILES_SHOW_FOLDERS');
+      if (v === '0') setShowFolders(false);
+      if (v === '1') setShowFolders(true);
+    } catch {}
+  }, []);
+
+  // Restore metadata visibility
+  React.useEffect(() => {
+    try {
+      const v = localStorage.getItem('FILES_SHOW_META');
+      if (v === '0') setShowMeta(false);
+      if (v === '1') setShowMeta(true);
+    } catch {}
+  }, []);
+
+  // Persist folder visibility
+  React.useEffect(() => {
+    try { localStorage.setItem('FILES_SHOW_FOLDERS', showFolders ? '1' : '0'); } catch {}
+  }, [showFolders]);
+
+  // Persist metadata visibility
+  React.useEffect(() => {
+    try { localStorage.setItem('FILES_SHOW_META', showMeta ? '1' : '0'); } catch {}
+  }, [showMeta]);
 
   /** Add new images (drag-drop) into our dataset with default metadata */
   const handleNew = React.useCallback((files: DemoItem[]) => {
@@ -484,6 +281,24 @@ export default function FilesPage() {
         }>
           <h1 className="text-xl font-semibold">Files</h1>
           <div className="hidden md:flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowFolders((v) => !v)}
+              aria-pressed={showFolders}
+              className="rounded border px-2 py-2 text-xs bg-white hover:bg-zinc-50 active:scale-95"
+              title={showFolders ? 'Skjul mapper' : 'Vis mapper'}
+            >
+              {showFolders ? 'Skjul mapper' : 'Vis mapper'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowMeta((v) => !v)}
+              aria-pressed={showMeta}
+              className="rounded border px-2 py-2 text-xs bg-white hover:bg-zinc-50 active:scale-95"
+              title={showMeta ? 'Skjul detaljer' : 'Vis detaljer'}
+            >
+              {showMeta ? 'Skjul detaljer' : 'Vis detaljer'}
+            </button>
             <div className="relative">
               <input
                 id="files-search-input"
@@ -553,9 +368,14 @@ export default function FilesPage() {
         </div>
 
         <div className="flex gap-6 min-h-0 flex-1 overflow-hidden">
-          {/* Left: folders + filters */}
+          {/* Leftmost: folders (full height) */}
+          {showFolders && (
+            <div className={`hidden md:block w-[220px] shrink-0 space-y-4 transition-all duration-300 ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'}`}>
+              <FoldersNav activeId={folderId} onSelectAction={setFolderId} />
+            </div>
+          )}
+          {/* Left: filters panel (second column) */}
           <div className={`hidden md:block w-[260px] shrink-0 space-y-4 transition-all duration-500 ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'}`}>
-            <FoldersNav activeId={folderId} onSelectAction={setFolderId} />
             <Filters value={filters} onChangeAction={setFilters} />
           </div>
 
@@ -593,15 +413,16 @@ export default function FilesPage() {
           </div>
 
           {/* Right: simple metadata editor for the selected image */}
-          <div className={`hidden md:block w-[300px] shrink-0 border-l bg-white p-4 transition-all duration-500 ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2'}`}>
-            <div className="text-sm font-medium mb-3">Metadata</div>
-            {!selected ? (
-              <div className="text-sm text-zinc-600">Klik på et billede for at redigere metadata.</div>
-            ) : (
-              <form
-                className="space-y-3"
-                onSubmit={(e) => e.preventDefault()}
-              >
+          {showMeta && (
+            <div className={`hidden md:block w-[300px] shrink-0 border-l bg-white p-4 transition-all duration-500 ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2'}`}>
+              <div className="text-sm font-medium mb-3">Metadata</div>
+              {!selected ? (
+                <div className="text-sm text-zinc-600">Klik på et billede for at redigere metadata.</div>
+              ) : (
+                <form
+                  className="space-y-3"
+                  onSubmit={(e) => e.preventDefault()}
+                >
                 <div className="text-xs uppercase tracking-wide text-zinc-400">ID</div>
                 <div className="text-sm">{selected.id}</div>
 
@@ -697,6 +518,7 @@ export default function FilesPage() {
               </form>
             )}
           </div>
+          )}
         </div>
         {/* Mobile Drawer: Folders + Filters */}
         {showFilters && (
