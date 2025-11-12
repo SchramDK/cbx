@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+/* Base environment */
+:root { color-scheme: light dark; }
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+
+/* Media elements behave predictably */
+img, video { display: block; max-width: 100%; height: auto; }
+
+/* Accessible focus defaults */
+:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
+
+/* Selection */
+::selection { background: rgba(59, 130, 246, 0.25); }
+
 :root {
   --background: #ffffff;
   --foreground: #111111;
@@ -30,23 +44,24 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Sidebar styling */
-aside {
+/* Sidebar styling (scoped) */
+.sidebar {
   background-color: var(--sidebar-bg);
   border-color: var(--sidebar-border);
 }
 
-aside a {
+.sidebar a {
   color: var(--sidebar-text);
   transition: color 0.2s ease;
 }
 
-aside a:hover {
+.sidebar a:hover,
+.sidebar a[aria-current="page"] {
   color: var(--sidebar-active);
 }
 
-aside a[aria-current="page"] {
-  color: var(--sidebar-active);
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
 }
 
 /* Generic utility borders */

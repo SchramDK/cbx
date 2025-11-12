@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 
 export type DemoItem = {
   id: string;
@@ -27,6 +28,8 @@ type Props = {
   targetRowHeight?: number;
   /** Gap (px) between items. Default 16. */
   gap?: number;
+  /** Optional builder to make each item link to a route (e.g. `/stock/[id]`). */
+  hrefBuilder?: (item: DemoItem, index: number) => string | null;
 };
 
 export default function Gallery({
@@ -38,6 +41,7 @@ export default function Gallery({
   itemClassName = '',
   targetRowHeight = 260,
   gap = 16,
+  hrefBuilder,
 }: Props) {
   // 1) Build final list (extra → items)
   const renderList = useMemo(() => {
@@ -141,41 +145,55 @@ export default function Gallery({
           <div key={rowIndex} className="flex" style={{ gap }}>
             {row.map((it, idx) => {
               const key = `${it.id}-${rowIndex}-${idx}`;
-              const isInteractive = Boolean(onSelectAction);
-              const role = isInteractive ? 'button' : undefined;
-              const tabIndex = isInteractive ? 0 : -1;
               const alt = it.alt ?? '';
               const isSelected = selectedId === it.id;
+              const href = hrefBuilder ? hrefBuilder(it, idx) : null;
+
+              const baseClass = `relative group overflow-hidden rounded-lg ${itemClassName}`;
+              const baseStyle = { width: it.w, height: it.h } as React.CSSProperties;
+
+              // If there's an href, wrap with Link and avoid click handlers on the container.
+              const Container: React.FC<{ children: React.ReactNode }> = ({ children }) =>
+                href ? (
+                  <Link href={href} className={baseClass} style={baseStyle}>
+                    {children}
+                  </Link>
+                ) : (
+                  <div
+                    className={baseClass}
+                    style={baseStyle}
+                    tabIndex={onSelectAction ? 0 : -1}
+                    role={onSelectAction ? 'button' : undefined}
+                    onClick={
+                      onSelectAction
+                        ? () => onSelectAction({ id: it.id, src: it.src, alt: it.alt }, idx)
+                        : undefined
+                    }
+                    onKeyDown={
+                      onSelectAction
+                        ? (e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              onSelectAction({ id: it.id, src: it.src, alt: it.alt }, idx);
+                            }
+                          }
+                        : undefined
+                    }
+                    aria-label={alt}
+                  >
+                    {children}
+                  </div>
+                );
 
               return (
-                <div
-                  key={key}
-                  className={`relative group overflow-hidden rounded-lg ${itemClassName}`}
-                  style={{ width: it.w, height: it.h }}
-                  tabIndex={tabIndex}
-                  role={role}
-                  onClick={
-                    isInteractive ? () => onSelectAction?.({ id: it.id, src: it.src, alt: it.alt }, idx) : undefined
-                  }
-                  onKeyDown={
-                    isInteractive
-                      ? (e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            onSelectAction?.({ id: it.id, src: it.src, alt: it.alt }, idx);
-                          }
-                        }
-                      : undefined
-                  }
-                  aria-label={alt}
-                >
+                <Container key={key}>
                   <img
                     data-id={it.id}
                     src={it.src}
                     alt={alt}
                     width={it.w}
                     height={it.h}
-                    className={`h-full w-full object-cover transition-transform duration-300 ${isInteractive ? 'cursor-pointer' : ''} ${isSelected ? ' ring-2 ring-blue-500 ring-offset-2 ring-offset-white' : ''}`}
+                    className={`h-full w-full object-cover transition-transform duration-300 ${onSelectAction && !href ? 'cursor-pointer' : ''} ${isSelected ? ' ring-2 ring-blue-500 ring-offset-2 ring-offset-white' : ''}`}
                     loading="lazy"
                     decoding="async"
                     onLoad={(e) => handleNaturalSize(it.id, e.currentTarget)}
@@ -195,7 +213,11 @@ export default function Gallery({
                       type="button"
                       className="pointer-events-auto inline-flex h-8 w-8 items-center justify-center rounded-md bg-white/90 text-zinc-800 shadow hover:bg-white"
                       title="Like"
-                      onClick={(e) => { e.stopPropagation(); /* TODO: like */ }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        /* TODO: like */
+                      }}
                     >
                       <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 21s-6.716-4.35-9.33-7.2C.91 12.88.5 11.61.5 10.3.5 7.79 2.54 6 4.86 6c1.36 0 2.68.63 3.5 1.63C9.46 6.63 10.78 6 12.14 6c2.32 0 4.36 1.79 4.36 4.3 0 1.31-.41 2.58-2.17 3.5C18.716 16.65 12 21 12 21z"/></svg>
                     </button>
@@ -203,7 +225,11 @@ export default function Gallery({
                       type="button"
                       className="pointer-events-auto inline-flex h-8 w-8 items-center justify-center rounded-md bg-white/90 text-zinc-800 shadow hover:bg-white"
                       title="Add to collection"
-                      onClick={(e) => { e.stopPropagation(); /* TODO: add to collection */ }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        /* TODO: add to collection */
+                      }}
                     >
                       <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M19 11H13V5h-2v6H5v2h6v6h2v-6h6z"/></svg>
                     </button>
@@ -211,12 +237,16 @@ export default function Gallery({
                       type="button"
                       className="pointer-events-auto inline-flex h-8 w-8 items-center justify-center rounded-md bg-white/90 text-zinc-800 shadow hover:bg-white"
                       title="Download"
-                      onClick={(e) => { e.stopPropagation(); /* TODO: download */ }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        /* TODO: download */
+                      }}
                     >
                       <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M5 20h14v-2H5v2zm7-18l-5 5h3v6h4V7h3l-5-5z"/></svg>
                     </button>
                   </div>
-                </div>
+                </Container>
               );
             })}
           </div>

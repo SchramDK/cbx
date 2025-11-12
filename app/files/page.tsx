@@ -271,59 +271,113 @@ export default function FilesPage() {
     batch.forEach(r => loadPaletteFor(r.id, r.src));
   }, [rows]);
 
+  // — UX helpers —
+  const hasActiveFilters = useMemo(() => {
+    const hasTypes = filters.types && filters.types.length > 0;
+    const hasPeople = filters.people !== 'any';
+    const hasColor = !!filters.colorHex;
+    const hasQuery = q.trim().length > 0;
+    const notAllFolder = folderId !== 'all';
+    return hasTypes || hasPeople || hasColor || hasQuery || notAllFolder;
+  }, [filters, q, folderId]);
+
+  const clearQuery = () => setQ('');
+  const clearTypes = () => setFilters((f) => ({ ...f, types: [] }));
+  const clearPeople = () => setFilters((f) => ({ ...f, people: 'any' }));
+  const clearColor = () => setFilters((f) => ({ ...f, colorHex: null }));
+  const clearFolder = () => setFolderId('all');
+  const clearAllFilters = () => {
+    setQ('');
+    setFolderId('all');
+    setFilters({ types: [], people: 'any', colorHex: null, colorTolerance: 30 });
+  };
+
   return (
     <ErrorBoundary>
       <div className="p-4 md:p-6 flex flex-col gap-6 h-screen overflow-hidden">
         <GlobalDropOverlay onNewImagesAction={handleNew} />
 
-        <div className={
-          `relative flex items-center justify-between transition-all duration-500 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`
-        }>
-          <h1 className="text-xl font-semibold">Files</h1>
-          <div className="hidden md:flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setShowFolders((v) => !v)}
-              aria-pressed={showFolders}
-              className="rounded border px-2 py-2 text-xs bg-white hover:bg-zinc-50 active:scale-95"
-              title={showFolders ? 'Skjul mapper' : 'Vis mapper'}
-            >
-              {showFolders ? 'Skjul mapper' : 'Vis mapper'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowMeta((v) => !v)}
-              aria-pressed={showMeta}
-              className="rounded border px-2 py-2 text-xs bg-white hover:bg-zinc-50 active:scale-95"
-              title={showMeta ? 'Skjul detaljer' : 'Vis detaljer'}
-            >
-              {showMeta ? 'Skjul detaljer' : 'Vis detaljer'}
-            </button>
-            <div className="relative">
-              <input
-                id="files-search-input"
-                type="search"
-                placeholder="Søg i filer…"
-                value={q}
-                onChange={(e)=>setQ(e.currentTarget.value)}
-                className="w-[260px] rounded border px-3 py-2 text-sm pr-8"
-                aria-label="Søg i filer"
-              />
-              {q && (
-                <button
-                  type="button"
-                  onClick={() => setQ('')}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 grid place-items-center h-6 w-6 rounded hover:bg-zinc-100 active:scale-95"
-                  aria-label="Ryd søgning"
-                >
-                  ×
-                </button>
-              )}
+        <div className="sticky -top-px z-10">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-6 bg-gradient-to-b from-white to-transparent" />
+          <div
+            className={
+              `relative flex items-center justify-between border-b bg-white/80 px-2 py-2 md:px-3 md:py-2 backdrop-blur supports-[backdrop-filter]:bg-white/60 transition-all duration-500 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`
+            }
+          >
+            <h1 className="text-base md:text-lg font-semibold">Filer</h1>
+            <div className="hidden md:flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowFolders((v) => !v)}
+                aria-pressed={showFolders}
+                className="rounded border px-2 py-2 text-xs bg-white hover:bg-zinc-50 active:scale-95"
+                title={showFolders ? 'Skjul mapper' : 'Vis mapper'}
+              >
+                {showFolders ? 'Skjul mapper' : 'Vis mapper'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowMeta((v) => !v)}
+                aria-pressed={showMeta}
+                className="rounded border px-2 py-2 text-xs bg-white hover:bg-zinc-50 active:scale-95"
+                title={showMeta ? 'Skjul detaljer' : 'Vis detaljer'}
+              >
+                {showMeta ? 'Skjul detaljer' : 'Vis detaljer'}
+              </button>
+              <div className="relative">
+                <input
+                  id="files-search-input"
+                  type="search"
+                  placeholder="Søg i filer… (tryk /)"
+                  value={q}
+                  onChange={(e)=>setQ(e.currentTarget.value)}
+                  className="w-[260px] rounded border px-3 py-2 text-sm pr-8"
+                  aria-label="Søg i filer"
+                />
+                {q && (
+                  <button
+                    type="button"
+                    onClick={clearQuery}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 grid place-items-center h-6 w-6 rounded hover:bg-zinc-100 active:scale-95"
+                    aria-label="Ryd søgning"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+              <span className="text-[11px] text-zinc-500" aria-live="polite">
+                {filteredItems.length} elementer
+              </span>
             </div>
-            <span className="text-[11px] text-zinc-500" aria-live="polite">
-              items:{filteredItems.length} · uploads:{added.length}
-            </span>
           </div>
+
+          {/* Active filter chips */}
+          {hasActiveFilters && (
+            <div className="bg-white/80 px-2 pb-2 md:px-3">
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="text-xs uppercase tracking-wide text-zinc-400">Aktive filtre:</span>
+                {folderId !== 'all' && (
+                  <button onClick={clearFolder} className="inline-flex items-center gap-1 rounded-full border px-3 py-1 hover:bg-zinc-50">Mappe: {folderId} <span aria-hidden>×</span></button>
+                )}
+                {!!q && (
+                  <button onClick={clearQuery} className="inline-flex items-center gap-1 rounded-full border px-3 py-1 hover:bg-zinc-50">Søgning: “{q}” <span aria-hidden>×</span></button>
+                )}
+                {filters.types?.length ? (
+                  <button onClick={clearTypes} className="inline-flex items-center gap-1 rounded-full border px-3 py-1 hover:bg-zinc-50">Type: {filters.types.join(', ')} <span aria-hidden>×</span></button>
+                ) : null}
+                {filters.people !== 'any' ? (
+                  <button onClick={clearPeople} className="inline-flex items-center gap-1 rounded-full border px-3 py-1 hover:bg-zinc-50">Personer: {filters.people === 'has' ? 'Ja' : 'Nej'} <span aria-hidden>×</span></button>
+                ) : null}
+                {filters.colorHex ? (
+                  <button onClick={clearColor} className="inline-flex items-center gap-2 rounded-full border px-2 py-1 hover:bg-zinc-50">
+                    <span className="inline-block h-4 w-4 rounded-full border" style={{ backgroundColor: filters.colorHex }} />
+                    <span>Farve</span> <span aria-hidden>×</span>
+                  </button>
+                ) : null}
+                <button onClick={clearAllFilters} className="ml-auto inline-flex items-center gap-1 rounded-full border px-3 py-1 text-zinc-600 hover:bg-zinc-50">Nulstil alle</button>
+              </div>
+            </div>
+          )}
         </div>
         <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-zinc-200 to-transparent" />
         {/* Mobile actions */}
@@ -332,7 +386,7 @@ export default function FilesPage() {
             onClick={() => setShowFilters(true)}
             className="flex-1 rounded-md border px-3 py-2 text-sm bg-white active:scale-[.99]"
           >
-            Mapper & Filtre
+            Mapper og filtre
           </button>
           <button
             onClick={() => selected ? setShowDetails(true) : null}
@@ -348,7 +402,7 @@ export default function FilesPage() {
             <input
               id="files-search-input"
               type="search"
-              placeholder="Søg i filer…"
+              placeholder="Søg i filer… (tryk /)"
               value={q}
               onChange={(e)=>setQ(e.currentTarget.value)}
               className="w-full rounded-md border px-3 py-2 pr-9 text-sm bg-white"
@@ -386,19 +440,37 @@ export default function FilesPage() {
                 <div className="text-center max-w-sm">
                   <div className="text-lg font-medium mb-1">Ingen resultater</div>
                   <p className="text-sm text-zinc-600 mb-3">Prøv at ændre dine filtre eller ryd søgningen.</p>
-                  <div className="flex items-center justify-center gap-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <button
                       className="rounded border px-3 py-2 text-sm bg-white hover:bg-zinc-50 active:scale-95"
-                      onClick={() => setQ('')}
+                      onClick={clearAllFilters}
                     >
-                      Ryd søgning
+                      Nulstil alle filtre
                     </button>
-                    <button
-                      className="rounded border px-3 py-2 text-sm bg-white hover:bg-zinc-50 active:scale-95"
-                      onClick={() => setFilters({ types: [], people: 'any', colorHex: null, colorTolerance: 30 })}
-                    >
-                      Nulstil filtre
-                    </button>
+                    {folderId !== 'all' && (
+                      <button
+                        className="rounded border px-3 py-2 text-sm bg-white hover:bg-zinc-50 active:scale-95"
+                        onClick={clearFolder}
+                      >
+                        Gå til Alle mapper
+                      </button>
+                    )}
+                    {!!filters.colorHex && (
+                      <button
+                        className="rounded border px-3 py-2 text-sm bg-white hover:bg-zinc-50 active:scale-95"
+                        onClick={clearColor}
+                      >
+                        Fjern farvefilter
+                      </button>
+                    )}
+                    {!!q && (
+                      <button
+                        className="rounded border px-3 py-2 text-sm bg-white hover:bg-zinc-50 active:scale-95"
+                        onClick={clearQuery}
+                      >
+                        Ryd søgning
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

@@ -48,7 +48,8 @@ export default function Home() {
         <section
           onMouseMove={handleHeroMove}
           onMouseLeave={handleHeroLeave}
-          className="relative overflow-hidden rounded-2xl border bg-zinc-900 text-white will-change-transform"
+          className="relative overflow-hidden rounded-2xl border bg-zinc-900 text-white will-change-transform reveal-up"
+          style={{ animationDelay: '60ms' }}
         >
           {/* background accent */}
           <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
@@ -108,13 +109,23 @@ export default function Home() {
             {/* quick mosaic thumbs (right) */}
             <div className="md:col-span-5 grid grid-cols-3 gap-2 md:gap-3 self-end">
               {FILES_PREVIEW.slice(0,3).map((it, idx)=> (
-                <Link key={it.id} href={it.href} className={`group relative block overflow-hidden rounded-lg ${idx % 2 ? 'float-slow' : ''}`}>
+                <Link
+                  key={it.id}
+                  href={it.href}
+                  className={`group relative block overflow-hidden rounded-lg reveal-up ${idx % 2 ? 'float-slow' : ''}`}
+                  style={{ animationDelay: `${100 + idx * 80}ms` }}
+                >
                   <img src={it.src} alt={it.alt ?? ''} className="h-24 md:h-28 w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
                   <div className="pointer-events-none absolute inset-0 bg-black/20 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
                 </Link>
               ))}
               {STOCK_PREVIEW.slice(0,3).map((it, idx)=> (
-                <Link key={it.id} href={it.href} className={`group relative block overflow-hidden rounded-lg ${idx % 2 ? 'float-slow' : ''}`}>
+                <Link
+                  key={it.id}
+                  href={it.href}
+                  className={`group relative block overflow-hidden rounded-lg reveal-up ${idx % 2 ? 'float-slow' : ''}`}
+                  style={{ animationDelay: `${100 + idx * 80}ms` }}
+                >
                   <img src={it.src} alt={it.alt ?? ''} className="h-24 md:h-28 w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
                   <div className="pointer-events-none absolute inset-0 bg-black/20 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
                 </Link>
@@ -124,7 +135,7 @@ export default function Home() {
         </section>
 
         {/* Quick actions (clean) */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <section className="grid grid-cols-1 sm:grid-cols-2 gap-4 reveal-up" style={{ animationDelay: '140ms' }}>
           <QuickAction href="/files" title="Åbn Filer" subtitle="Se dine uploads" />
           <QuickAction href="/stock" title="Gå til Stock" subtitle="Find inspiration" />
         </section>
@@ -133,7 +144,7 @@ export default function Home() {
           {/* Left column: Files + Stock previews */}
           <div className="lg:col-span-2 space-y-10">
             {/* Files section */}
-            <section>
+            <section className="reveal-up" style={{ animationDelay: '220ms' }}>
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-lg font-semibold">Seneste fra dine Filer</h2>
                 <Link href="/files" className="text-sm text-zinc-600 hover:underline">Se alle →</Link>
@@ -142,7 +153,7 @@ export default function Home() {
             </section>
 
             {/* Stock section */}
-            <section>
+            <section className="reveal-up" style={{ animationDelay: '280ms' }}>
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-lg font-semibold">Udvalgt fra Stock</h2>
                 <Link href="/stock" className="text-sm text-zinc-600 hover:underline">Gå til Stock →</Link>
@@ -153,7 +164,7 @@ export default function Home() {
 
           {/* Right column: Activity + Colors */}
           <aside className="space-y-6">
-            <section className="rounded-lg border bg-white p-4">
+            <section className="rounded-lg border bg-white p-4 reveal-up" style={{ animationDelay: '340ms' }}>
               <div className="mb-2 text-sm font-semibold">Aktivitet i dag</div>
               <ul className="space-y-3 text-sm">
                 <ActivityItem who="Emily" action="delte" what="2 billeder" when="for 12 min." />
@@ -164,7 +175,7 @@ export default function Home() {
               <Link href="/files" className="mt-3 inline-block text-xs text-zinc-600 hover:underline">Se al aktivitet</Link>
             </section>
 
-            <section className="rounded-lg border bg-white p-4">
+            <section className="rounded-lg border bg-white p-4 reveal-up" style={{ animationDelay: '380ms' }}>
               <div className="mb-2 text-sm font-semibold">Farvetemaer</div>
               <div className="flex flex-wrap gap-2">
                 {COLOR_THEMES.map((hex) => (
@@ -180,15 +191,15 @@ export default function Home() {
         </div>
 
         {/* Themes / Inspiration */}
-        <section>
+        <section className="reveal-up" style={{ animationDelay: '420ms' }}>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-lg font-semibold">Temaer &amp; inspiration</h2>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            <ThemeCard title="Portrætter" href="/stock" src="https://picsum.photos/id/1027/800/600" />
-            <ThemeCard title="Natur" href="/stock" src="https://picsum.photos/id/1018/800/600" />
-            <ThemeCard title="By & urban" href="/stock" src="https://picsum.photos/id/1011/800/600" />
-            <ThemeCard title="Produkter" href="/stock" src="https://picsum.photos/id/1060/800/600" />
+            <ThemeCard className="reveal-up" style={{ animationDelay: '460ms' }} title="Portrætter" href="/stock" src="https://picsum.photos/id/1027/800/600" />
+            <ThemeCard className="reveal-up" style={{ animationDelay: '520ms' }} title="Natur" href="/stock" src="https://picsum.photos/id/1018/800/600" />
+            <ThemeCard className="reveal-up" style={{ animationDelay: '580ms' }} title="By & urban" href="/stock" src="https://picsum.photos/id/1011/800/600" />
+            <ThemeCard className="reveal-up" style={{ animationDelay: '640ms' }} title="Produkter" href="/stock" src="https://picsum.photos/id/1060/800/600" />
           </div>
         </section>
         <style jsx>{`
@@ -206,6 +217,17 @@ export default function Home() {
             pointer-events: none;
           }
           .btn-ripple:hover::after { opacity: 1; }
+
+          /* --- Reveal on load --- */
+          @keyframes revealUp {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+          }
+          .reveal-up { opacity: 0; animation: revealUp .6s cubic-bezier(.22,.85,.36,1) both; }
+
+          @media (prefers-reduced-motion: reduce) {
+            .reveal-up { animation: none !important; opacity: 1 !important; transform: none !important; }
+          }
         `}</style>
       </main>
     </div>
@@ -230,8 +252,13 @@ function MosaicItem({ item, className, label }: { item: PreviewItem; className?:
 function PreviewGrid({ items }: { items: PreviewItem[] }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      {items.map((it) => (
-        <Link key={it.id} href={it.href} className="group relative block overflow-hidden rounded-lg bg-zinc-100 transition-transform duration-300 will-change-transform hover:-translate-y-1 hover:shadow-xl">
+      {items.map((it, idx) => (
+        <Link
+          key={it.id}
+          href={it.href}
+          className="group relative block overflow-hidden rounded-lg bg-zinc-100 transition-transform duration-300 will-change-transform hover:-translate-y-1 hover:shadow-xl reveal-up"
+          style={{ animationDelay: `${idx * 50}ms` }}
+        >
           <img src={it.src} alt={it.alt ?? ''} className="h-32 sm:h-44 w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" />
           <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
           <div className="absolute bottom-2 right-2 text-[11px] px-2 py-1 rounded bg-white/90 text-zinc-800 shadow opacity-0 group-hover:opacity-100">Åbn</div>
@@ -241,9 +268,9 @@ function PreviewGrid({ items }: { items: PreviewItem[] }) {
   );
 }
 
-function ThemeCard({ title, href, src }: { title: string; href: string; src: string }) {
+function ThemeCard({ title, href, src, className, style }: { title: string; href: string; src: string; className?: string; style?: React.CSSProperties }) {
   return (
-    <Link href={href} className="group relative block overflow-hidden rounded-lg border bg-white">
+    <Link href={href} className={`group relative block overflow-hidden rounded-lg border bg-white ${className ?? ''}`} style={style}>
       <div className="aspect-[4/3]">
         <img src={src} alt={title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-70" />
@@ -255,7 +282,7 @@ function ThemeCard({ title, href, src }: { title: string; href: string; src: str
 
 function QuickAction({ href, title, subtitle }: { href: string; title: string; subtitle?: string }) {
   return (
-    <Link href={href} className="group block rounded-lg border bg-white p-4 active:scale-[.99] hover:-translate-y-0.5 hover:shadow-md transition-transform transition-shadow will-change-transform">
+    <Link href={href} className="group block rounded-lg border bg-white p-4 active:scale-[.99] hover:-translate-y-0.5 hover:shadow-md transition-transform transition-shadow will-change-transform reveal-up">
       <div className="text-sm font-medium">{title}</div>
       {subtitle ? <div className="text-xs text-zinc-500">{subtitle}</div> : null}
     </Link>
